@@ -5,7 +5,9 @@ At work now.
 
 # Goal
 
-・Working this chat bot on Google App Engine and raspberry pi.
+## To enrich contents that dictionary of chat bot.
+
+## To Work this chat bot on Google App Engine and raspberry pi.
 
 # Install
 
