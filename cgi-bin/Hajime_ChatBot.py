@@ -8,6 +8,23 @@ import datetime
 import cgi
 #import MeCab
 
+#HTMLの中身
+html_body = """
+	<html>
+	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+	<head>
+		<title>人工無能「はじめ」</title>
+	</head>
+	<body>
+
+	    <center>%s<br>
+
+	    <form method="POST" action="/cgi-bin/Hajime_ChatBot.py">
+	        <input type="text" name="word">
+	        <input type="submit" />
+	    </form></center>
+	</body>
+	</html>"""
 
 """
 def getRandomText(text):
@@ -84,32 +101,32 @@ def greeting(hour):
 		return random.choice(greets)
 
 def insertLog(who,txt):
-	#DataBaseに発言者、内容、時間のログを保存
+	#Corpus.dbに発言者、内容、時間のログを保存
 	if txt:
 		today = datetime.datetime.today()
 		now = today.strftime("%Y/%m/%d %H:%M:%S")
 		con.execute("insert into Log values('%s', '%s', '%s')" % (who, txt, now))
 
+def chatLog():
+	context = ""
+	log_user = []
+	log_word = []
+	log = []
+	cur.execute("select who from Log order by time desc limit 10")
+	for i in cur:
+		log_user.append(i[0])
+	cur.execute("select word from Log order by time desc limit 10")
+	for j in cur:
+		log_word.append(j[0])
+	
+	for k in range(10):
+		log.append(log_user[k] + ":" + log_word[k] + "<br>")
+	log.reverse()
+	
+	for i in log:
+		context += i
 
-#HTMLの中身
-html_body = """
-	<html>
-	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
-	<head>
-		<title>人工無能「はじめ」</title>
-	</head>
-	<body>
-
-	    <center>Hajime:%s<br>
-	    You:%s<br><br>
-
-	    <form method="POST" action="/cgi-bin/Hajime_ChatBot.py">
-	        <input type="text" name="word">
-	        <input type="submit" />
-	    </form></center>
-	</body>
-	</html>"""
-
+	return context
 
 form = cgi.FieldStorage()
 you_say = form.getfirst("word","")
@@ -118,23 +135,28 @@ con = sqlite3.connect("Corpus.db")
 cur = con.cursor()
 sql = "create table if not exists Log(who text, word text, time text)"
 con.execute(sql)
-
 print("Content-type: text/html; charset=utf-8\n")
 
 
 if not you_say:
-	initial_message = greeting(datetime.datetime.now().hour) + firstMessage()
-	print(html_body % (initial_message.encode("utf-8"),""))
+	hajime_say = greeting(datetime.datetime.now().hour) + firstMessage()
+	insertLog("Hajime",hajime_say)
+	con.commit()
+	log_print = chatLog()
+	print(html_body % log_print.encode("utf-8"))
+
 elif you_say:
 	cur.execute("select * from Data")
 	words = []
 	for row in cur:
 		words.append(row[0])
 	hajime_say = random.choice(words).encode("utf-8")
-	insertLog("you",you_say)
-	print(html_body % (hajime_say,cgi.escape(you_say)))
 	insertLog("Hajime",hajime_say)
+	insertLog("you",you_say)
 	con.commit()
+	log_print = chatLog()
+	print(html_body % log_print.encode("utf-8"))
+	
 else:
 	print(html_body % ("・・・",""))
 
